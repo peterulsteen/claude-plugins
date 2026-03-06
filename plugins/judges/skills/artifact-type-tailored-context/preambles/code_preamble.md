@@ -55,9 +55,11 @@ When assessing implemented code, focus on these key dimensions:
 
 ## Evaluation Context
 
+**Judge input contract**: Read `judge-input.json` first. Use `task` and `source_of_truth` ordering to determine which artifacts are primary vs supporting for this run.
+
 **Implementation plan reference**: The code you're evaluating was written to satisfy specific acceptance criteria from an implementation plan. Compare the implemented code against those requirements to assess completeness and correctness.
 
-**Investigation log reference**: If `investigation-log.md` is present, use it as secondary prior-discovery context (for architecture patterns, reuse opportunities, and historical findings). Do not let it override direct implementation evidence from `code-context.json`/diff artifacts.
+**Investigation log reference**: If `investigation-log.md` is present in mapped artifacts, use it as prior-discovery context (for architecture patterns, reuse opportunities, and historical findings). Do not let it override the envelope's primary implementation evidence.
 
 **Build validation**: If build results are provided, consider compilation errors, linting warnings, or type errors as signals of code quality issues.
 

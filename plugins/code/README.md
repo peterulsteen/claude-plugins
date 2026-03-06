@@ -168,6 +168,9 @@ Introspects workspace repositories to determine how to start development servers
 **`learning-capture`** (model: sonnet)
 Processes pending learning JSON files from `.learnings/pending/`. Classifies each as `closedloop` (tooling improvements) or `organization` (project-specific patterns), assigns categories (mistake, pattern, convention, insight), and writes structured session output.
 
+**`context-manager-for-judges`** (model: sonnet)
+Prepares compressed context bundles for judge evaluation. Allocates a 30,000-token budget across plan/code artifacts (including `investigation-log.md` when available), invokes `judges:artifact-type-tailored-context` for compression, and writes `plan-context.json` or `code-context.json`. `run-judges` then maps these artifacts into `judge-input.json` so judges consume a generic task+context envelope rather than hardcoded filenames.
+
 **`amend-extractor`** (model: sonnet)
 Extracts actionable plan amendments from unstructured input (meeting notes, Slack threads, email). Returns structured JSON with `extracted_changes`, `unclear_items`, and `no_action_items`. Used by the `amend-plan` command when input cannot be classified as a directive, question, or confirmation.
 
