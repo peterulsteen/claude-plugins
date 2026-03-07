@@ -33,6 +33,14 @@
         "$ref": "#/$defs/artifactDescriptor"
       }
     },
+    "source_of_truth": {
+      "type": "array",
+      "description": "Ordered list of artifact IDs defining evidence priority. Judges use this to prioritize evidence across artifacts.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "fallback_mode": {
       "type": "object",
       "required": ["active", "reason", "fallback_artifacts"],

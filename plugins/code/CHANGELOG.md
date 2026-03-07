@@ -1,6 +1,6 @@
 # code plugin changelog
 
-## [1.0.8] - Unreleased
+## [1.0.6] - Unreleased
 
 ### Changed
 - Moved `context-manager-for-judges` agent from `code` plugin to `judges` plugin

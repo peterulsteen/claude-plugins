@@ -277,7 +277,7 @@ After validating `prd.md` and `plan.json`, resolve supporting context for plan j
    - If log generation still fails, emit a warning and continue.
 
 6. **Prepare plan-context.json via context-manager-for-judges**
-   - Launch `@code:context-manager-for-judges` with `artifact_type=plan`.
+   - Launch `@judges:context-manager-for-judges` with `artifact_type=plan`.
    - Verify `$CLOSEDLOOP_WORKDIR/plan-context.json` exists.
    - If missing after invocation, log warning and activate **compatibility mode** for this run:
      - Compatibility mode allows one emergency fallback to raw `plan.json` + `prd.md`.
@@ -816,7 +816,7 @@ Before marking this task complete, verify:
 | "Context preparation failed" | context-manager-for-judges failed | Check context-manager agent output; verify artifact files exist |
 | "judge-input.json missing" | Orchestrator did not generate envelope | Build `$CLOSEDLOOP_WORKDIR/judge-input.json` before launching judges |
 | "judge-input schema invalid" | Missing required envelope fields | Ensure required fields: `evaluation_type`, `task`, `primary_artifact`, `supporting_artifacts`, `source_of_truth`, `fallback_mode`, `metadata` |
-| "plan-context.json not found" | plan context manager did not produce output | Run `@code:context-manager-for-judges` with `artifact_type=plan`; if still missing, activate one-run compatibility fallback to `plan.json` + `prd.md` |
+| "plan-context.json not found" | plan context manager did not produce output | Run `@judges:context-manager-for-judges` with `artifact_type=plan`; if still missing, activate one-run compatibility fallback to `plan.json` + `prd.md` |
 | "Preamble file not found" | Missing common or artifact preamble .md file | Verify both `skills/artifact-type-tailored-context/preambles/common_input_preamble.md` and `skills/artifact-type-tailored-context/preambles/{artifact_type}_preamble.md` exist |
 | "pre-explorer unavailable" | `@code:pre-explorer` not installed/resolvable | Log warning and use internal fallback investigation to create `investigation-log.md` |
 | "investigation-log.md missing after fallback" | Both pre-explorer and internal fallback failed | Log warning and continue; do not block context preparation |
@@ -858,7 +858,7 @@ If a single judge Task call fails during execution:
 - Continue with remaining judges in batch and subsequent batches
 - Include error CaseScore in final aggregated report
 
-### Backward Compatibility Preservation
+### Plan Mode Execution Flow
 
 When `--artifact-type` is not specified or equals 'plan':
 - Execute standard 13-judge plan logic
