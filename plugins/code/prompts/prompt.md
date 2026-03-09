@@ -131,7 +131,8 @@ TodoWrite([
   {"content": "Phase 4: Code simplification", "status": "pending", "activeForm": "Simplifying code"},
   {"content": "Phase 5: Testing and Code Review", "status": "pending", "activeForm": "Testing"},
   {"content": "Phase 6: Visual inspection", "status": "pending", "activeForm": "Inspecting visuals"},
-  {"content": "Phase 7: Logging and completion", "status": "pending", "activeForm": "Completing"}
+  {"content": "Phase 7: Logging and completion", "status": "pending", "activeForm": "Completing"},
+  {"content": "Phase 8: Thorough code review", "status": "pending", "activeForm": "Running thorough code review"}
 ])
 ```
 
@@ -478,12 +479,42 @@ Here are the key phases you must complete:
   3. **Do NOT output `<promise>COMPLETE</promise>`** - just end your response naturally
   4. The external loop will automatically restart a fresh iteration
 
+- **If all verification gates pass:** Proceed to Phase 8
+
+**PHASE 8: THOROUGH CODE REVIEW**
+
+- **Update state.json** with phase tracking:
+  ```bash
+  echo '{"phase": "Phase 8: Thorough code review", "status": "IN_PROGRESS", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > $CLOSEDLOOP_WORKDIR/state.json
+  ```
+- Run a comprehensive code review of all changes on the current branch before raising a PR
+- Activate the `code-review:start` skill (no arguments — defaults to reviewing all changes on the current branch vs main)
+- The code-review skill runs multi-agent partitioned deep review, deterministic hygiene checks, and validated findings
+- Process the review results:
+  - If **blocking findings** exist:
+    1. For each blocking finding, delegate the fix to a sonnet subagent (do NOT fix code yourself)
+    2. After fixes, re-run `code-review:start` to verify the blockers are resolved
+    3. Repeat until no blocking findings remain (max 3 review cycles)
+    4. If blockers persist after 3 cycles:
+       <awaiting_user_sequence>
+       **CRITICAL: Execute these steps IN THIS EXACT ORDER.**
+
+       1. **FIRST** - Write state.json with AWAITING_USER status:
+          ```bash
+          echo '{"phase": "Phase 8: Thorough code review", "status": "AWAITING_USER", "reason": "Blocking code review findings after 3 fix cycles", "userAction": {"description": "Fix remaining code review findings and run the command to continue", "file": null, "command": "/code:code $ARGUMENTS"}, "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > $CLOSEDLOOP_WORKDIR/state.json
+          ```
+       2. **ONLY AFTER state.json is written** - Output `<promise>COMPLETE</promise>`
+       3. Tell the user: "Code review found blocking issues that could not be auto-fixed. Fix them manually and run `/code:code $ARGUMENTS` to continue."
+       4. **HARD STOP** - Do not continue.
+       </awaiting_user_sequence>
+  - If **no blocking findings** (only major/minor or clean): Proceed to completion
+
   <completion_sequence>
   **CRITICAL: Execute these steps IN THIS EXACT ORDER. Step 1 MUST complete before Step 2.**
 
   1. **FIRST** - Write state.json with COMPLETED status:
      ```bash
-     echo '{"phase": "Phase 7: Logging and completion", "status": "COMPLETED", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > $CLOSEDLOOP_WORKDIR/state.json
+     echo '{"phase": "Phase 8: Thorough code review", "status": "COMPLETED", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > $CLOSEDLOOP_WORKDIR/state.json
      ```
   2. **ONLY AFTER state.json is written** - Output `<promise>COMPLETE</promise>`
 
