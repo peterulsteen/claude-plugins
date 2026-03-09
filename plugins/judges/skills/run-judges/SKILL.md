@@ -21,7 +21,7 @@ Execute specialized judge agents in parallel to evaluate implementation plan qua
 
 The judge input contract is maintained in:
 
-`references/judge-input-contract.md`
+`skills/run-judges/references/judge-input-contract.md` (resolve to an absolute path at runtime via `Glob`)
 
 This keeps orchestration flow readable while preserving a single source of truth for contract fields and semantics.
 
@@ -216,9 +216,11 @@ rm -f "$CLOSEDLOOP_WORKDIR/.closedloop/perf-substep-start.env"
 
 Before any prerequisite checks or judge launches:
 
-1. Read `references/judge-input-contract.md` in full.
-2. Apply the contract requirements when constructing `$CLOSEDLOOP_WORKDIR/judge-input.json`.
-3. If the reference is missing/unreadable, fail fast with a clear error (do not proceed with judge execution).
+1. Resolve the contract file path using `Glob` with:
+   - `**/skills/run-judges/references/judge-input-contract.md`
+2. Read the resolved `judge-input-contract.md` file in full.
+3. Apply the contract requirements when constructing `$CLOSEDLOOP_WORKDIR/judge-input.json`.
+4. If the file is missing, ambiguous (multiple matches), or unreadable, fail fast with a clear error (do not proceed with judge execution).
 
 ### Prerequisites Check
 
