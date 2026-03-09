@@ -188,14 +188,10 @@ resolve_judges_agents_dir() {
   local plugins_parent
   plugins_parent="$(dirname "$code_root_dir")"
 
-  local repo_judges_agents=""
   local sibling_judges_agents="$plugins_parent/judges/agents"
   local sibling_judges_root="$plugins_parent/judges"
   local tried=()
 
-  if [[ -n "$code_root_dir" ]]; then
-    repo_judges_agents="$(cd "$code_root_dir/../../judges/agents" 2>/dev/null && pwd || echo "$code_root_dir/../../judges/agents")"
-  fi
   sibling_judges_agents="$(cd "$sibling_judges_agents" 2>/dev/null && pwd || echo "$sibling_judges_agents")"
   sibling_judges_root="$(cd "$sibling_judges_root" 2>/dev/null && pwd || echo "$sibling_judges_root")"
 
@@ -211,17 +207,7 @@ resolve_judges_agents_dir() {
     fi
   fi
 
-  # 2) Monorepo-compatible relative path from code plugin root.
-  if [[ -n "$repo_judges_agents" ]]; then
-    tried+=("$repo_judges_agents")
-    if is_valid_judges_agents_dir "$repo_judges_agents"; then
-      log_progress "resolve_judges_agents_dir: using repo-relative path $repo_judges_agents"
-      echo "$repo_judges_agents"
-      return 0
-    fi
-  fi
-
-  # 3) Non-versioned sibling plugin layout (.../judges/agents).
+  # 2) Non-versioned sibling plugin layout (.../judges/agents).
   tried+=("$sibling_judges_agents")
   if is_valid_judges_agents_dir "$sibling_judges_agents"; then
     log_progress "resolve_judges_agents_dir: using sibling plugin path $sibling_judges_agents"
@@ -229,7 +215,7 @@ resolve_judges_agents_dir() {
     return 0
   fi
 
-  # 4) Versioned sibling plugin layout (.../judges/<version>/agents), newest valid semver wins.
+  # 3) Versioned sibling plugin layout (.../judges/<version>/agents), newest valid semver wins.
   tried+=("$sibling_judges_root/<version>/agents")
   local versioned_agents_dir
   versioned_agents_dir="$(resolve_versioned_judges_agents_dir "$sibling_judges_root" || true)"
