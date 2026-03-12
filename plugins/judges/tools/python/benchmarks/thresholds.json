@@ -1,0 +1,115 @@
+{
+  "_comment": "Benchmark thresholds. Times in seconds, tokens via heuristic (chars/4).",
+  "scenarios": {
+    "bingo-skill": {
+      "tokens": {
+        "prd_min": 200,
+        "prd_max": 2000,
+        "plan_content_min": 500,
+        "plan_content_max": 15000,
+        "plan_json_min": 1000,
+        "plan_json_max": 30000
+      },
+      "quality": {
+        "min_pass_rate": 0.80,
+        "min_mean_score": 0.70,
+        "max_error_count": 0,
+        "per_judge_min_score": {
+          "goal-alignment-judge": 0.75,
+          "kiss-judge": 0.70,
+          "dry-judge": 0.70,
+          "code-organization-judge": 0.65,
+          "technical-accuracy-judge": 0.65,
+          "readability-judge": 0.65,
+          "verbosity-judge": 0.60,
+          "test-judge": 0.60,
+          "ssot-judge": 0.65,
+          "solid-open-closed-judge": 0.60,
+          "solid-isp-dip-judge": 0.60,
+          "solid-liskov-substitution-judge": 0.60,
+          "custom-best-practices-judge": 0.60,
+          "efficiency-judge": 0.60,
+          "informativeness-relevance-judge": 0.60
+        }
+      },
+      "code_quality": {
+        "min_pass_rate": 0.75,
+        "min_mean_score": 0.65,
+        "max_error_count": 0,
+        "per_judge_min_score": {
+          "kiss-judge": 0.65,
+          "dry-judge": 0.65,
+          "code-organization-judge": 0.60,
+          "technical-accuracy-judge": 0.60,
+          "readability-judge": 0.60,
+          "test-judge": 0.55,
+          "ssot-judge": 0.60,
+          "solid-open-closed-judge": 0.55,
+          "solid-isp-dip-judge": 0.55,
+          "solid-liskov-substitution-judge": 0.55,
+          "custom-best-practices-judge": 0.55
+        }
+      },
+      "perf_events": {
+        "min_iteration_count": 1,
+        "max_total_duration_s": 600,
+        "min_agent_count": 3
+      }
+    },
+    "fizzbuzz-js": {
+      "tokens": {
+        "prd_min": 50,
+        "prd_max": 800,
+        "plan_content_min": 100,
+        "plan_content_max": 3000,
+        "plan_json_min": 200,
+        "plan_json_max": 5000
+      },
+      "quality": {
+        "min_pass_rate": 0.90,
+        "min_mean_score": 0.80,
+        "max_error_count": 0,
+        "per_judge_min_score": {
+          "goal-alignment-judge": 0.85,
+          "kiss-judge": 0.85,
+          "dry-judge": 0.85,
+          "code-organization-judge": 0.75,
+          "technical-accuracy-judge": 0.75,
+          "readability-judge": 0.75,
+          "verbosity-judge": 0.70,
+          "test-judge": 0.70,
+          "ssot-judge": 0.75,
+          "solid-open-closed-judge": 0.70,
+          "solid-isp-dip-judge": 0.70,
+          "solid-liskov-substitution-judge": 0.70,
+          "custom-best-practices-judge": 0.70,
+          "efficiency-judge": 0.70,
+          "informativeness-relevance-judge": 0.70
+        }
+      },
+      "code_quality": {
+        "min_pass_rate": 0.85,
+        "min_mean_score": 0.75,
+        "max_error_count": 0,
+        "per_judge_min_score": {
+          "kiss-judge": 0.80,
+          "dry-judge": 0.80,
+          "code-organization-judge": 0.70,
+          "technical-accuracy-judge": 0.70,
+          "readability-judge": 0.70,
+          "test-judge": 0.65,
+          "ssot-judge": 0.70,
+          "solid-open-closed-judge": 0.65,
+          "solid-isp-dip-judge": 0.65,
+          "solid-liskov-substitution-judge": 0.65,
+          "custom-best-practices-judge": 0.65
+        }
+      },
+      "perf_events": {
+        "min_iteration_count": 1,
+        "max_total_duration_s": 300,
+        "min_agent_count": 3
+      }
+    }
+  }
+}

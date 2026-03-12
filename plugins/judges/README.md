@@ -6,6 +6,7 @@ A collection of specialized LLM judge agents that evaluate implementation plans 
 
 - **13 plan judges** covering DRY, SSOT, KISS, SOLID principles, code organization, readability, verbosity, goal alignment, test quality, technical accuracy, and custom best practices
 - **11 code judges** — the same set minus goal-alignment and verbosity judges, which are plan-specific
+- **4 grounding judges** that leverage `investigation-log.md` to verify plan accuracy against actual codebase state (brownfield accuracy, codebase grounding, convention adherence, code review)
 - **Parallel execution** via batched Task calls (up to 4 concurrent judges per batch)
 - **Structured output** using a validated `CaseScore` JSON schema with Pydantic enforcement
 - **Artifact compression** to keep large artifacts within token budgets before judge invocation
@@ -306,6 +307,112 @@ All judges output a `CaseScore` JSON object with:
 | `detail_balance` | 0.7 | Complex/non-obvious areas receive more detail; standard practices are kept brief |
 
 **Used in:** Plan evaluation only (not code evaluation).
+
+---
+
+### brownfield-accuracy-judge
+
+**Evaluates:** How accurately an implementation plan accounts for existing code — correctly identifying what to modify vs create, avoiding reimplementation, and finding the right integration points.
+
+**Model:** opus
+
+**Reads from `$CLOSEDLOOP_WORKDIR`:** `investigation-log.md`, `plan.json`, `prd.md`
+
+**Metrics (3):**
+
+| Metric | Threshold | What It Checks |
+|--------|-----------|----------------|
+| `reuse_vs_reimplement` | 0.8 | Plan reuses existing code where investigation-log confirms it exists, rather than reimplementing |
+| `integration_point_accuracy` | 0.8 | Proposed integration points (function calls to modify, files to extend) are confirmed correct by investigation-log |
+| `scope_accuracy` | 0.8 | Plan correctly scopes what needs to change — neither missing required changes nor touching unrelated code |
+
+**Investigation-log dependency:** If `investigation-log.md` is absent, all metrics score 0.5 with `final_status = 2` (FAIL — unverifiable).
+
+---
+
+### codebase-grounding-judge
+
+**Evaluates:** Whether an implementation plan is grounded in codebase reality by comparing plan claims against the investigation log. Detects hallucinated file paths, nonexistent modules, and fabricated APIs.
+
+**Model:** opus
+
+**Reads from `$CLOSEDLOOP_WORKDIR`:** `investigation-log.md`, `plan.json`, `prd.md`
+
+**Metrics (3):**
+
+| Metric | Threshold | What It Checks |
+|--------|-----------|----------------|
+| `file_path_accuracy` | 0.8 | File paths in the plan are confirmed by investigation-log or structurally consistent with it |
+| `module_reference_accuracy` | 0.8 | Module, class, function, and API references match investigation-log ground truth |
+| `existing_code_awareness` | 0.8 | Plan correctly identifies what already exists vs what needs to be built |
+
+**Investigation-log dependency:** If `investigation-log.md` is absent, all metrics score 0.5 with `final_status = 2` (FAIL — unverifiable). The judge does not access the filesystem directly.
+
+---
+
+### convention-adherence-judge
+
+**Evaluates:** Whether an implementation plan follows the conventions, patterns, and style found in the actual codebase, as documented in the investigation log.
+
+**Model:** sonnet
+
+**Reads from `$CLOSEDLOOP_WORKDIR`:** `investigation-log.md`, `plan.json`, `prd.md`
+
+**Metrics (3):**
+
+| Metric | Threshold | What It Checks |
+|--------|-----------|----------------|
+| `naming_convention_compliance` | 0.8 | Proposed names (files, classes, functions) follow conventions documented in investigation-log |
+| `structural_convention_compliance` | 0.8 | Proposed file locations and module organization follow the project's structure |
+| `pattern_and_tooling_compliance` | 0.8 | Proposed code patterns and tools match what the project uses |
+
+**Investigation-log dependency:** If `investigation-log.md` is absent, all metrics score 0.5 with `final_status = 2` (FAIL — unverifiable).
+
+---
+
+### code-review-judge
+
+**Evaluates:** Implementation quality by running the code review pipeline (code_review_helpers.py + code-review-worker agents) and translating findings into a CaseScore.
+
+**Model:** sonnet
+
+**Reads from `$CLOSEDLOOP_WORKDIR`:** `plan.json`, `investigation-log.md` (optional)
+
+**Metrics (4):**
+
+| Metric | Threshold | What It Checks |
+|--------|-----------|----------------|
+| `security_score` | 0.7 | Security findings from code review pipeline |
+| `correctness_score` | 0.7 | Correctness, type safety, and async findings |
+| `performance_score` | 0.7 | Performance findings |
+| `code_quality_score` | 0.7 | Code quality, DRY, repo hygiene, and convention findings |
+
+**Scoring:** Starts at 1.0 per metric, applies severity-based penalties (BLOCKING: -0.35, HIGH: -0.20, MEDIUM: -0.08, LOW: -0.02). Falls back to manual review if code_review_helpers.py is unavailable.
+
+**Used in:** Code evaluation only.
+
+---
+
+## Grounding Judges and investigation-log.md
+
+The four grounding judges (brownfield-accuracy, codebase-grounding, convention-adherence, code-review) use `investigation-log.md` as ground truth to verify plan quality against the actual codebase. This investigation log is produced during pre-exploration and documents real files, modules, conventions, and integration points.
+
+**Key design decisions:**
+- If `investigation-log.md` is absent, grounding judges score all metrics at 0.5 and return `final_status = 2` (FAIL — unverifiable) rather than attempting to evaluate
+- These judges do not access the filesystem directly (except code-review-judge for git diffs); they rely solely on the investigation log
+- They are the primary differentiators between plans written with codebase context (ClosedLoop) and plans written blind (OOTB)
+
+---
+
+## Tools
+
+### Benchmarks (`tools/python/benchmarks/`)
+
+E2E benchmark pipeline for measuring judge quality and performance.
+
+- **score_report.py** — Parses judge reports, computes per-judge mean scores, compares against baselines, checks thresholds, and generates markdown reports for PR comments. Supports 3-tier comparison (OOTB model vs ClosedLoop main vs current PR).
+- **test_benchmarks.py** — Deterministic pytest suite validating fixture integrity, token usage, artifact quality, and performance event analysis against `thresholds.json`.
+- **perf_summary.py** — Performance telemetry analysis tool that summarizes iterations, pipeline steps, sub-steps, and agent timings from `perf.jsonl`.
 
 ---
 
