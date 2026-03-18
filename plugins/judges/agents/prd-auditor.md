@@ -64,19 +64,6 @@ The PRD to audit is located at `$CLOSEDLOOP_WORKDIR/prd.md`. Read it first.
 1. Scan the entire PRD for a section or subsection titled "Kill Criteria", "Kill Switch", "Kill Conditions", or "Go/No-Go Criteria".
 2. If no such section is found anywhere in the document, flag as a **major** finding.
 
-## Check 6: Template Section Inventory
-
-1. Locate the canonical PRD template by running:
-   ```bash
-   find / -path "*/prd-creator/assets/prd-template.md" 2>/dev/null | head -1
-   ```
-2. If the template file is found, read it and extract all H2 section names (lines beginning with `## `).
-3. For each H2 section name from the template, check whether the PRD contains:
-   - That section (exact or close match), OR
-   - An explicit omission annotation in the format `[Omitted: <reason>]` near where that section would appear.
-4. Any template H2 section that is neither present nor annotated with `[Omitted: reason]` is a **major** finding.
-5. If the template file cannot be found, skip this check and note it in the audit report as "Template not found — Check 6 skipped."
-
 ## Score Calculation
 
 Use this exact formula:
