@@ -9,7 +9,7 @@
 ClosedLoop Judge Report Validation
 
 Validates judges.json output from the judge orchestrator against the expected
-Pydantic models defined in the PRD.
+Pydantic models.
 """
 
 import argparse
@@ -62,15 +62,15 @@ class EvaluationReport(BaseModel):
     stats: List[CaseScore]
 
 
-# JudgeRegistry: Maps category names to expected judge sets
-JUDGE_REGISTRY = {
+JUDGE_REGISTRY: dict[str, set[str]] = {
     "plan": {
+        "brownfield-accuracy-judge",
+        "codebase-grounding-judge",
         "code-organization-judge",
+        "convention-adherence-judge",
         "custom-best-practices-judge",
         "dry-judge",
-        "efficiency-judge",
         "goal-alignment-judge",
-        "informativeness-relevance-judge",
         "kiss-judge",
         "readability-judge",
         "solid-isp-dip-judge",
@@ -94,6 +94,25 @@ JUDGE_REGISTRY = {
         "technical-accuracy-judge",
         "test-judge",
     },
+    "prd": {
+        "prd-auditor",
+        "prd-dependency-judge",
+        "prd-testability-judge",
+        "prd-scope-judge",
+    },
+}
+
+VALID_SUFFIXES: dict[str, list[str]] = {
+    "plan": ["-plan-judges", "-judges"],
+    "code": ["-code-judges"],
+    "prd": ["-prd-judges"],
+}
+
+# Default report filename per category (the plan category uses 'judges.json' without a prefix)
+DEFAULT_FILENAMES: dict[str, str] = {
+    "plan": "judges.json",
+    "code": "code-judges.json",
+    "prd": "prd-judges.json",
 }
 
 
@@ -102,16 +121,14 @@ def validate_report(report_path: Path, category: str = "plan") -> tuple[bool, st
 
     Args:
         report_path: Path to the judges.json file
-        category: Judge category to validate against ('plan' or 'code')
+        category: Judge category to validate against ('plan', 'code', or 'prd')
 
     Returns:
         Tuple of (valid: bool, message: str)
     """
-    # Check file exists
     if not report_path.exists():
         return False, f"Report file does not exist: {report_path}"
 
-    # Load JSON
     try:
         with open(report_path, 'r') as f:
             data = json.load(f)
@@ -120,20 +137,16 @@ def validate_report(report_path: Path, category: str = "plan") -> tuple[bool, st
     except IOError as e:
         return False, f"Error reading file: {e}"
 
-    # Validate against Pydantic model with strict validation
     try:
         report = EvaluationReport.model_validate(data, strict=True)
     except Exception as e:
         return False, f"Validation failed: {e}"
 
-    # Additional semantic validations
     errors = []
 
-    # Check that we have at least one judge result
     if not report.stats:
         errors.append("Report contains no judge results (stats array is empty)")
 
-    # Check for expected judge case_ids based on category
     if category not in JUDGE_REGISTRY:
         errors.append(f"Invalid category '{category}'. Must be one of: {', '.join(sorted(JUDGE_REGISTRY.keys()))}")
     else:
@@ -143,12 +156,10 @@ def validate_report(report_path: Path, category: str = "plan") -> tuple[bool, st
         if missing_judges:
             errors.append(f"Missing expected judges for category '{category}': {', '.join(sorted(missing_judges))}")
 
-    # Check report_id format (should be {RUN_ID}-judges or {RUN_ID}-plan-judges)
-    valid_suffixes = ["-judges", "-plan-judges"]
+    valid_suffixes = VALID_SUFFIXES.get(category, [])
     if not any(report.report_id.endswith(suffix) for suffix in valid_suffixes):
         errors.append(f"report_id should end with one of {valid_suffixes}, got: {report.report_id}")
 
-    # Check that each judge has at least one metric
     for case in report.stats:
         if not case.metrics:
             errors.append(f"Judge {case.case_id} has no metrics")
@@ -165,47 +176,41 @@ def main() -> int:
     Returns:
         0 if valid, 1 if invalid
     """
+    parser = argparse.ArgumentParser(description='Validate judge report JSON format')
+    parser.add_argument('--workdir', required=True, help='Working directory containing judges.json')
+    parser.add_argument('--report-path', help='Path to report file (defaults to $WORKDIR/{category}-judges.json)')
+    parser.add_argument('--category', choices=list(JUDGE_REGISTRY.keys()), default='plan',
+                        help='Judge category to validate against (default: plan)')
+
+    args = parser.parse_args()
+
+    workdir = Path(args.workdir).resolve()
+
+    if not workdir.exists():
+        print(f"Error: workdir does not exist: {workdir}", file=sys.stderr)
+        return 1
+
+    if not workdir.is_dir():
+        print(f"Error: workdir is not a directory: {workdir}", file=sys.stderr)
+        return 1
+
+    if args.report_path:
+        report_path = Path(args.report_path).resolve()
+    else:
+        report_path = workdir / DEFAULT_FILENAMES[args.category]
+
     try:
-        parser = argparse.ArgumentParser(description='Validate judge report JSON format')
-        parser.add_argument('--workdir', required=True, help='Working directory containing judges.json')
-        parser.add_argument('--report-path', help='Path to report file (defaults to $WORKDIR/{category}-judges.json)')
-        parser.add_argument('--category', choices=['plan', 'code'], default='plan',
-                            help='Judge category to validate against (default: plan)')
-
-        args = parser.parse_args()
-
-        workdir = Path(args.workdir).resolve()
-
-        # Verify workdir exists
-        if not workdir.exists():
-            print(f"Error: workdir does not exist: {workdir}", file=sys.stderr)
-            return 1
-
-        if not workdir.is_dir():
-            print(f"Error: workdir is not a directory: {workdir}", file=sys.stderr)
-            return 1
-
-        # Determine report path
-        if args.report_path:
-            report_path = Path(args.report_path).resolve()
-        else:
-            # Default filename based on category
-            filename = 'judges.json' if args.category == 'plan' else f'{args.category}-judges.json'
-            report_path = workdir / filename
-
-        # Validate
         valid, message = validate_report(report_path, category=args.category)
-
-        if valid:
-            print(f"✓ {message}")
-            return 0
-        else:
-            print(f"✗ {message}", file=sys.stderr)
-            return 1
-
     except Exception as e:
         print(f"Error: unexpected error during validation: {e}", file=sys.stderr)
         return 1
+
+    if valid:
+        print(f"✓ {message}")
+        return 0
+
+    print(f"✗ {message}", file=sys.stderr)
+    return 1
 
 
 if __name__ == '__main__':

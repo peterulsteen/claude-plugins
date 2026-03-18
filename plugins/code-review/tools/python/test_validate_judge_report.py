@@ -60,9 +60,9 @@ def create_evaluation_report(report_id: str, judge_ids: list[str]) -> dict:
 class TestBackwardCompatibility:
     """Tests verifying regression prevention for existing plan judge behavior."""
 
-    def test_category_plan_accepts_15_judges(self, tmp_path: Path) -> None:
-        """Verify that category='plan' validates all 15 plan judges successfully."""
-        # Create valid report with all 15 plan judges
+    def test_category_plan_accepts_16_judges(self, tmp_path: Path) -> None:
+        """Verify that category='plan' validates all 16 plan judges successfully."""
+        # Create valid report with all 16 plan judges
         plan_judges = sorted(JUDGE_REGISTRY["plan"])
         report = create_evaluation_report("run-20250211-plan-judges", plan_judges)
 
@@ -71,7 +71,7 @@ class TestBackwardCompatibility:
 
         valid, message = validate_report(report_path, category="plan")
         assert valid is True, f"Expected valid report, got: {message}"
-        assert "15 judge results" in message
+        assert "16 judge results" in message
 
     def test_legacy_report_id_suffix(self, tmp_path: Path) -> None:
         """Verify backward compatibility with legacy '-judges' suffix (no '-plan' prefix)."""
@@ -87,9 +87,9 @@ class TestBackwardCompatibility:
             f"Expected valid report with legacy suffix, got: {message}"
         )
 
-    def test_no_category_flag_validates_15_judges(self, tmp_path: Path) -> None:
-        """Verify default behavior (no category parameter) validates 15 plan judges."""
-        # Create valid report with all 15 plan judges
+    def test_no_category_flag_validates_16_judges(self, tmp_path: Path) -> None:
+        """Verify default behavior (no category parameter) validates 16 plan judges."""
+        # Create valid report with all 16 plan judges
         plan_judges = sorted(JUDGE_REGISTRY["plan"])
         report = create_evaluation_report("run-20250211-judges", plan_judges)
 
@@ -101,7 +101,7 @@ class TestBackwardCompatibility:
         assert valid is True, (
             f"Expected valid report with default category, got: {message}"
         )
-        assert "15 judge results" in message
+        assert "16 judge results" in message
 
     def test_default_category_plan(self, tmp_path: Path) -> None:
         """Verify omitting --category defaults to plan validation."""
@@ -127,10 +127,10 @@ class TestBackwardCompatibility:
         valid, _ = validate_report(report_path, category="plan")
         assert valid is True
 
-    def test_15_judges_plan_validation(self, tmp_path: Path) -> None:
-        """Verify validation passes with exactly 15 expected plan judges."""
-        # Verify we have exactly 15 judges in the registry
-        assert len(JUDGE_REGISTRY["plan"]) == 15, (
+    def test_16_judges_plan_validation(self, tmp_path: Path) -> None:
+        """Verify validation passes with exactly 16 expected plan judges."""
+        # Verify we have exactly 16 judges in the registry (3 new brownfield/grounding/convention judges added)
+        assert len(JUDGE_REGISTRY["plan"]) == 16, (
             "Plan judges count changed unexpectedly"
         )
 
@@ -142,7 +142,7 @@ class TestBackwardCompatibility:
 
         valid, message = validate_report(report_path, category="plan")
         assert valid is True
-        assert "15 judge results" in message
+        assert "16 judge results" in message
 
     def test_plan_report_rejects_code_judges(self, tmp_path: Path) -> None:
         """Verify category='plan' rejects reports with only code judge subset."""
@@ -598,3 +598,208 @@ class TestIntegration:
         # Test without category parameter (default)
         valid_default, _ = validate_report(report_path_legacy)
         assert valid_default is True
+
+
+class TestCategoryPrdValidation:
+    """Tests for the new prd category with 4 judges."""
+
+    def test_accepts_valid_4_judge_report(self, tmp_path: Path) -> None:
+        """Valid 4-judge prd report passes validation."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        assert len(prd_judges) == 4, "PRD judges count should be 4"
+
+        report = create_evaluation_report("run-20250211-prd-judges", prd_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is True, f"Expected valid prd report, got: {message}"
+        assert "4 judge results" in message
+
+    def test_prd_registry_contains_expected_judges(self) -> None:
+        """Verify prd JUDGE_REGISTRY contains the 4 expected PRD judges."""
+        expected = {
+            "prd-auditor",
+            "prd-dependency-judge",
+            "prd-testability-judge",
+            "prd-scope-judge",
+        }
+        assert JUDGE_REGISTRY["prd"] == expected, (
+            f"PRD registry mismatch. Expected {expected}, got {JUDGE_REGISTRY['prd']}"
+        )
+
+    def test_prd_report_id_requires_prd_judges_suffix(self, tmp_path: Path) -> None:
+        """PRD report must use -prd-judges suffix in report_id."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        report = create_evaluation_report("run-20250211-prd-judges", prd_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is True, f"Expected valid report with -prd-judges suffix, got: {message}"
+
+    def test_prd_rejects_wrong_suffix(self, tmp_path: Path) -> None:
+        """PRD report with non -prd-judges suffix fails validation."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        report = create_evaluation_report("run-20250211-judges", prd_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is False, "Expected rejection for wrong suffix"
+        assert "report_id should end with one of" in message
+        assert "-prd-judges" in message
+
+    def test_prd_rejects_plan_suffix(self, tmp_path: Path) -> None:
+        """PRD report using plan-style suffix fails validation."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        report = create_evaluation_report("run-20250211-plan-judges", prd_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is False, "Expected rejection for plan suffix used with prd category"
+        assert "report_id should end with one of" in message
+
+    def test_prd_rejects_code_suffix(self, tmp_path: Path) -> None:
+        """PRD report using code-style suffix fails validation."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        report = create_evaluation_report("run-20250211-code-judges", prd_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is False, "Expected rejection for code suffix used with prd category"
+        assert "report_id should end with one of" in message
+
+    def test_prd_rejects_missing_judges(self, tmp_path: Path) -> None:
+        """PRD report missing required judges fails validation."""
+        # Omit prd-scope-judge
+        partial_judges = [
+            j for j in sorted(JUDGE_REGISTRY["prd"]) if j != "prd-scope-judge"
+        ]
+        assert len(partial_judges) == 3
+
+        report = create_evaluation_report("run-20250211-prd-judges", partial_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is False
+        assert "Missing expected judges for category 'prd'" in message
+        assert "prd-scope-judge" in message
+
+    def test_prd_error_message_includes_category(self, tmp_path: Path) -> None:
+        """Error messages for prd include category context."""
+        # Use only 2 judges to trigger missing judges error
+        partial_judges = ["prd-auditor", "prd-dependency-judge"]
+
+        report = create_evaluation_report("run-20250211-prd-judges", partial_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is False
+        assert "category 'prd'" in message
+
+    def test_prd_report_extra_judge_passes(self, tmp_path: Path) -> None:
+        """PRD report with extra judges beyond the required 4 still passes."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        extra_judges = prd_judges + ["extra-custom-judge"]
+
+        report = create_evaluation_report("run-20250211-prd-judges", extra_judges)
+
+        report_path = tmp_path / "prd-judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="prd")
+        assert valid is True, "Extra judges should not cause prd validation failure"
+
+    def test_prd_category_in_judge_registry(self) -> None:
+        """Verify 'prd' is a valid key in JUDGE_REGISTRY."""
+        assert "prd" in JUDGE_REGISTRY, "JUDGE_REGISTRY must contain a 'prd' key"
+
+    def test_prd_not_accepted_for_plan_category(self, tmp_path: Path) -> None:
+        """PRD judges submitted as a plan report fail because plan-specific judges are missing."""
+        prd_judges = sorted(JUDGE_REGISTRY["prd"])
+        report = create_evaluation_report("run-20250211-plan-judges", prd_judges)
+
+        report_path = tmp_path / "judges.json"
+        report_path.write_text(json.dumps(report, indent=2))
+
+        valid, message = validate_report(report_path, category="plan")
+        assert valid is False, "PRD judges should not satisfy plan category requirements"
+        assert "Missing expected judges" in message
+
+    def test_default_filename_for_prd_category(self) -> None:
+        """DEFAULT_FILENAMES produces 'prd-judges.json' for prd category."""
+        from validate_judge_report import DEFAULT_FILENAMES  # type: ignore[import-not-found]
+
+        assert DEFAULT_FILENAMES["prd"] == "prd-judges.json"
+
+    def test_valid_suffixes_for_prd_category(self) -> None:
+        """VALID_SUFFIXES for prd contains only '-prd-judges'."""
+        from validate_judge_report import VALID_SUFFIXES  # type: ignore[import-not-found]
+
+        assert VALID_SUFFIXES["prd"] == ["-prd-judges"]
+
+
+class TestPlanRegistryReconciliation:
+    """Tests verifying the reconciled plan JUDGE_REGISTRY (3 new judges added, no phantom entries)."""
+
+    def test_brownfield_accuracy_judge_in_plan_registry(self) -> None:
+        """brownfield-accuracy-judge is present in plan registry."""
+        assert "brownfield-accuracy-judge" in JUDGE_REGISTRY["plan"]
+
+    def test_codebase_grounding_judge_in_plan_registry(self) -> None:
+        """codebase-grounding-judge is present in plan registry."""
+        assert "codebase-grounding-judge" in JUDGE_REGISTRY["plan"]
+
+    def test_convention_adherence_judge_in_plan_registry(self) -> None:
+        """convention-adherence-judge is present in plan registry."""
+        assert "convention-adherence-judge" in JUDGE_REGISTRY["plan"]
+
+    def test_plan_registry_has_no_phantom_entries(self) -> None:
+        """Plan registry contains only known valid judge names (no phantom/typo entries)."""
+        expected_plan_judges = {
+            "brownfield-accuracy-judge",
+            "codebase-grounding-judge",
+            "code-organization-judge",
+            "convention-adherence-judge",
+            "custom-best-practices-judge",
+            "dry-judge",
+            "goal-alignment-judge",
+            "kiss-judge",
+            "readability-judge",
+            "solid-isp-dip-judge",
+            "solid-liskov-substitution-judge",
+            "solid-open-closed-judge",
+            "ssot-judge",
+            "technical-accuracy-judge",
+            "test-judge",
+            "verbosity-judge",
+        }
+        assert JUDGE_REGISTRY["plan"] == expected_plan_judges, (
+            f"Plan registry has unexpected entries. "
+            f"Extra: {JUDGE_REGISTRY['plan'] - expected_plan_judges}, "
+            f"Missing: {expected_plan_judges - JUDGE_REGISTRY['plan']}"
+        )
+
+    def test_new_plan_judges_are_absent_from_code_registry(self) -> None:
+        """The 3 new plan-only judges are not included in the code registry."""
+        new_plan_only_judges = {
+            "brownfield-accuracy-judge",
+            "codebase-grounding-judge",
+            "convention-adherence-judge",
+        }
+        for judge in new_plan_only_judges:
+            assert judge not in JUDGE_REGISTRY["code"], (
+                f"{judge} should not be in code registry"
+            )

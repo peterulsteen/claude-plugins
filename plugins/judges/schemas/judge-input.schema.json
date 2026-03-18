@@ -16,7 +16,7 @@
   "properties": {
     "evaluation_type": {
       "type": "string",
-      "enum": ["plan", "code"],
+      "enum": ["plan", "code", "prd"],
       "description": "Evaluation mode for this judge run."
     },
     "task": {
