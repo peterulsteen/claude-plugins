@@ -43,9 +43,9 @@ After collecting all `US-###` identifiers:
 
 For each `US-###` story:
 
-1. Locate the **Dependencies & Risks** section of the PRD.
-2. Scan the story for references to features, systems, services, or integrations that do not yet exist and are not listed in the PRD's **Dependencies & Risks** section.
-3. If any such reference is found, flag the story as **major** with rationale naming the unbuilt feature and noting its absence from the Dependencies & Risks section.
+1. Locate the dependency and risk documentation in the PRD. This may appear under any of these headings (alone or in combination): **Dependencies & Risks**, **Technical Considerations** (which may contain a Dependencies bullet), or **Risks & Mitigations**. Treat all of these as equivalent documentation surfaces.
+2. Scan the story for references to features, systems, services, or integrations that do not yet exist and are not acknowledged in any of those sections.
+3. If any such reference is found, flag the story as **major** with rationale naming the unbuilt feature and noting its absence from all dependency/risk sections present in the PRD.
 
 ## Severity Reference
 

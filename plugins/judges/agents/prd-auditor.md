@@ -69,7 +69,7 @@ Use this exact formula:
 
 ```
 blocking_count = number of blocking findings (Check 1 and Check 3)
-major_count    = number of major findings (Checks 2, 4, 6)
+major_count    = number of major findings (Checks 2, 4)
 minor_count    = number of minor findings (Check 5)
 
 If blocking_count > 0:
